@@ -1,0 +1,98 @@
+---
+title: "Assignment4_forecast"
+author: "Akansha Gupta"
+date: "2023-10-09"
+output: html_document
+---
+
+```{r}
+library(readxl)
+sales_excel <- read_excel("C:/Users/ag2183/Desktop/sales_excel.xlsx")
+View(sales_excel)
+
+library(fpp)  #declare library fpp
+library(fpp2) #declare library fpp2
+library(TTR)  #declare library TTR
+
+attributes(sales_excel)
+plot(x=sales_excel$date,y=sales_excel$coffee_arabica,type="l")
+Acf(sales_excel$coffee_arabica)
+
+#take Mean of all available history
+
+
+ts_data <- ts(sales_excel$coffee_arabica, frequency = 12, start = c(2015, 1))
+mean_forecast <- meanf(ts_data, 5)
+plot(mean_forecast)
+
+
+# Naive
+naive_forecast <- naive(ts_data,5)
+plot(naive_forecast)
+
+# Random Walk
+rwf_forecast <- rwf(ts_data,5)
+plot(rwf_forecast)
+rwf_forecast <- rwf(ts_data,5, drift=TRUE)
+plot(rwf_forecast)
+
+# Seasonal Naive
+snaive_forecast <- snaive(ts_data,5)
+plot(snaive_forecast)
+
+# Moving Averages
+
+MA5_forecast <- ma(ts_data,order=5)
+plot(MA5_forecast)
+MA9_forecast <- ma(ts_data,order=9)
+plot(MA9_forecast)
+
+# plot all in a single chart
+plot(mean_forecast)
+lines(naive_forecast$mean,col="red")
+lines(rwf_forecast$mean,col="green")
+lines(snaive_forecast$mean,col="black")
+lines(MA5_forecast,col="Pink")
+lines(MA9_forecast,col="Blue")
+
+# what other attributes are there?
+attributes(naive_forecast)
+
+# Decomposition
+ets_forecast <- ets(ts_data)
+plot(ets_forecast)
+attributes(ets_forecast)
+ets_forecast$mse
+
+# HoltWinters
+
+HW_forecast <- HoltWinters(ts_data)
+plot(HW_forecast)
+SSE_Simple <- HoltWinters(ts_data,beta=FALSE,gamma=FALSE)
+attributes(SSE_Simple)
+plot(SSE_Simple)
+SSE_Simple$SSE
+head(SSE_Simple$fitted)
+
+#Forecast
+forecast_ets_1 <- forecast.ets(ets_forecast, h=5)
+plot(forecast_ets_1)
+forecast_ets_2 <- forecast(ets_forecast, h=5)
+plot(forecast_ets_2)
+forecast_MA5_forecast <- forecast(MA5_forecast, h=5)
+plot(forecast_MA5_forecast)
+forecast_SSE <- forecast(SSE_Simple, h=5)
+plot(forecast_SSE)
+forecast_HW <- forecast(HW_forecast, h=20)
+plot(forecast_HW)
+
+#Accuracy measures
+accuracy(mean_forecast) #mean
+accuracy(naive_forecast) #naive
+accuracy(rwf_forecast) #rwf
+accuracy(snaive_forecast) #seasonal naive
+accuracy(forecast_MA5_forecast) #Moving average order 5
+accuracy(forecast_SSE) #SSE
+accuracy(forecast_HW) #Holt winters
+
+```
