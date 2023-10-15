@@ -1,0 +1,169 @@
+---
+title: "Forecastingmodel_Assignment_4"
+author: "Akansha Gupta"
+date: "2023-10-10"
+output: html_document
+---
+
+```{r}
+
+library(fpp)       #declare library fpp
+library(fpp2)     #declare library fpp2
+library(TTR)      #declare library TTR
+
+library(readxl)
+coffeebrazil <- read_excel("C:/Users/ag2183/Desktop/coffeebrazil.xlsx")
+View(coffeebrazil)
+
+attributes(coffeebrazil)
+
+#time series conversion 
+
+TimeSeries<-ts(coffeebrazil$Import_value,start=c(2010,01),end=c(2022,06),frequency=12) 
+plot(TimeSeries) 
+
+plot(x = coffeebrazil$Date, y = coffeebrazil$Import_value, type = "l",
+     main = " Monthly Coffee Imports In Brazil", xlab = "Year", ylab = "Import Value")
+
+#ACF Plot
+Acf(TimeSeries, main = "ACF plot - Monthly Coffee Imports In Brazil")
+#The ACF plot suggests that historical data points have a significant impact on the preceding data.A small seasonality can be observed in the ACF plot. This observation suggests that there might be a repeating pattern or seasonality in the data, possibly indicating that the data has some recurring behavior over specific time intervals. Overall, plot points out the presence of autocorrelation and hints at the existence of seasonality in your time series data, which is valuable information for further analysis and forecasting.
+
+
+
+# Mean forecasting 5 ts points forecast: It computes the mean of the last 5 points in the time series to generate the forecast
+
+mean_forecast <- meanf(TimeSeries, 5)
+cat("Mean Forecast Value:", mean_forecast$mean, "\n")
+
+# Plot with x-label and y-label
+plot(mean_forecast, xlab = "Years", ylab = "Import Value")
+
+# Add a horizontal line for the mean forecast value
+abline(h = mean_forecast$mean, col = "red")
+## Forecasting Methods
+
+### Naive Method : Called the "no-change" forecast, Serves as a good "benchmark"
+
+#naive forecasting.The "naive" forecast is a simple forecasting method that assumes future values will be the same as the most recent past values.It is used to generate a naive forecast for the next 5 time periods based on given time series data.
+
+# Generate the naive forecast
+naive_forecast <- naive(TimeSeries, 5)
+
+# Create the plot and specify x and y axis labels
+plot(naive_forecast, xlab = "Years", ylab = "Import Value")
+
+# Random Walk: a simple forecasting model that assumes that the best prediction for a future value in a time series is the most recent observed value.
+
+rwf_forecast <- rwf(TimeSeries,5) #rwf forecast
+rwf_forecast <- rwf(TimeSeries,5, drift=TRUE) # trend rwf drift
+plot(rwf_forecast, xlab = "Years", ylab = "Import Value")
+
+# Seasonal Naive: simple but effective forecasting method that takes into account seasonal patterns in time series data. Here's a breakdown of your code:
+snaive_forecast <- snaive(TimeSeries,5) 
+plot(snaive_forecast, xlab = "Years", ylab = "Import Value")
+
+## Moving Averages
+
+#MA5_forecast:The moving average method calculates the average of the last 5 data points to forecast future values. It calculates a 5-period moving average forecast for the "Coffee Imports in Brazil" time series data and then plots the results. 
+
+MA5_forecast <- ma(TimeSeries,order=5) #moving average order5
+plot(MA5_forecast, main = 'MA5_forecast',  xlab = "Years", ylab = "Import Value")
+
+#MA9_forecast: The Moving Average method calculates the average of the last 9 data points to forecast future values, which can help smooth out short-term fluctuations and highlight longer-term trends.
+
+MA9_forecast <- ma(TimeSeries,order=9) #moving average order 9
+plot(MA9_forecast, main = 'MA9_forecast',  xlab = "Years", ylab = "Import Value")
+
+# plot all in a single chart
+plot(mean_forecast, main = "Combined Forecasts", xlab = "Years", ylab = "Import Value")
+lines(naive_forecast$mean,col="red")
+lines(rwf_forecast$mean,col="green")
+lines(snaive_forecast$mean,col="black")
+lines(MA5_forecast,col="Pink")
+lines(MA9_forecast,col="Blue")
+
+# what other attributes are there?
+attributes(naive_forecast)
+
+#ets_forecast: Exponential smoothing is a time series forecasting technique that aims to capture and model trend and seasonality patterns in the data. 
+ets_forecast <- ets(TimeSeries) 
+plot(ets_forecast)
+
+attributes(ets_forecast)
+ets_forecast$mse #The Mean Squared Error (MSE) for this ETS_forecast of "Coffee Imports in Brazil" is 422,776,257. This numerical value quantifies the accuracy of the forecast. In this case, an MSE of 422,776,257 suggests that, on average, the squared difference between the forecasted values and the actual values is quite large. This implies that there may be room for improvement in the accuracy of this forecast, and I should explore other forecasting methods.
+
+# HoltWinters
+HW_forecast <- HoltWinters(TimeSeries)  
+plot(HW_forecast)
+
+SSE_Simple <- HoltWinters(TimeSeries,beta=FALSE,gamma=FALSE)
+attributes(SSE_Simple)
+plot(SSE_Simple)
+SSE_Simple$SSE
+head(SSE_Simple$fitted)
+
+#Forecast
+forecast_ets_1 <- forecast.ets(ets_forecast, h=5)
+plot(forecast_ets_1)
+forecast_ets_2 <- forecast(ets_forecast, h=5)
+plot(forecast_ets_2)
+
+forecast_ETS <- forecast(ets_forecast, h=5)
+plot(forecast_ETS)
+
+forecast_HW <- forecast(HW_forecast, h=5)
+plot(forecast_HW)
+
+# plot all in a single chart
+plot(mean_forecast, main = "Combined Forecasts", xlab = "Years", ylab = "Import Value")
+lines(naive_forecast$mean,col="red")
+lines(rwf_forecast$mean,col="green")
+lines(snaive_forecast$mean,col="black")
+lines(MA5_forecast,col="Pink")
+lines(MA9_forecast,col="Blue")
+lines(forecast_HW$mean,col="purple") #Holtwinters
+lines(forecast_ETS$mean,col="yellow") #ETS
+
+#Residual analysis
+
+#Holtwinters Residual analysis : The residuals exhibit a clear 12-month seasonal pattern, implying the Holt-Winters model may not fully capture the seasonality. ACF plot lacks significant linear autocorrelation, with no lines beyond confidence intervals. The residuals somewhat resemble a normal distribution centered around zero, yet deviations suggest some heteroscedasticity. Residuals display non-random fluctuations and trends over time, possibly due to unaccounted factors.
+
+HW_residual <- forecast(forecast_HW)
+attributes(HW_residual)
+plot(HW_residual$residuals, main = " HW Residuals")
+hist(HW_residual$residuals, main = "Residuals - Histogram")
+Acf(HW_residual$residuals, main = "Residuals - Acf Plot")
+
+#Naive residual analysis indicates that the Naive model performs reasonably well in terms of linearity and autocorrelation. However, the presence of seasonality in the residuals suggests room for improvement in capturing the seasonality in the model. Additionally, the histogram indicates some deviations from a perfect normal distribution. 
+naive_residual <- forecast(naive_forecast)
+attributes(naive_residual)
+plot(naive_residual$residuals, main = " naive_residual")
+hist(naive_residual$residuals, main = "Residuals - Histogram")
+Acf(naive_residual$residuals, main = "Residuals - Acf Plot")
+
+#MA5 residual analysis:indicates that the model performs well in terms of linearity and autocorrelation. The residuals approximately follow a normal distribution, and the model has effectively removed significant autocorrelation from the data. However, some month-to-month variations suggest that additional factors or seasonal patterns might influence the data that could be further explored or modeled.
+
+forecast_MA5_forecast <- forecast(MA5_forecast, h=5)
+attributes(forecast_MA5_forecast)
+plot(forecast_MA5_forecast$residuals, main = " MA5_residual")
+hist(forecast_MA5_forecast$residuals, main = "Residuals - Histogram")
+Acf(forecast_MA5_forecast$residuals, main = "Residuals - Acf Plot")
+
+#Accuracy measures
+accuracy(mean_forecast) #mean
+accuracy(naive_forecast) #naive
+accuracy(rwf_forecast) #rwf
+accuracy(snaive_forecast) #seasonal naive
+
+forecast_MA5_forecast <- forecast(MA5_forecast, h=5)
+accuracy(forecast_MA5_forecast) #Moving average order 5
+
+forecast_SSE <- forecast(SSE_Simple, h=5)
+accuracy(forecast_SSE) #SSE
+accuracy(forecast_HW) #Holt winters
+accuracy(forecast_ETS) #ETS
+
+
+```
+
